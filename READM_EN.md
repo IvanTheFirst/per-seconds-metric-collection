@@ -20,7 +20,7 @@ in the config directory there is already a grafana plugin for greptimedb version
 
 ---
 
-#### how to run
+### how to run
 clone the repository and set the executable bit of the script
 ```chmod +x ./perf_per_sec.pl```
 
@@ -52,7 +52,7 @@ sudo docker-compose up -d
 
 ---
 
-#### connect greptimedb datasource
+### connect greptimedb datasource
 To connect, specify the following greptimedb datasource settings:
 ```
 url: http://greptimedb:4000/
@@ -66,7 +66,9 @@ ignore this error -
 
 ![greptimedb datasource saving settings error](/pictures/greptimedb_datasource_error.png)
 
-#### create vizualizations with greptimedb
+---
+
+### create vizualizations with greptimedb
 When creating a dashboard, it is important to first make all the settings in the visual editor, then it is possible to switch to code mode. If this is not done, then the ```$__timeFilter``` and other variables will not be correctly interpreted by the plugin.
 
 1. select the FROM field from the drop-down list:
@@ -96,7 +98,7 @@ When creating a dashboard, it is important to first make all the settings in the
 
 ---
 
-#### connect timescaledb datasource 
+### connect timescaledb datasource 
 timescaledb connection settings
 ```
 Host URL: timescaledb:5432
@@ -111,7 +113,9 @@ PostgreSQL Options:
     Version: 15
 ```
 
-#### data vizualizations with timescaledb
+---
+
+### data vizualizations with timescaledb
 script **perf_per_sec.pl** sends data in the following json format
 ```
 {
