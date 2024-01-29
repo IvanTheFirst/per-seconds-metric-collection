@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "GreptimeDB",
+  "id": "mofengfeng-greptimedb-datasource",
+  "metrics": true,
+  "backend": false,
+  "info": {
+    "description": "Open source time series database",
+    "author": {
+      "name": "Greptime"
+    },
+    "keywords": ["datasource", "sql"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Greptime",
+        "url": "https://www.greptime.com/"
+      },
+      {
+        "name": "Github",
+        "url": "https://github.com/DiamondMofeng/grafana-greptime-datasource"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/DiamondMofeng/grafana-greptime-datasource/blob/main/LICENSE"
+      }
+    ],
+    "screenshots": [
+      {
+        "name": "sql-config-editor",
+        "path": "img/screenshots/sql-query-editor.png"
+      }
+    ],
+    "version": "0.2.5",
+    "updated": "2023-07-06"
+  },
+  "routes": [],
+  "dependencies": {
+    "grafanaDependency": ">=9.0.0",
+    "plugins": []
+  }
+}

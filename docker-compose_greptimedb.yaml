@@ -1,0 +1,36 @@
+version: '3'
+services:
+  grafana:
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    container_name: grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    image: grafana/grafana:main
+    # networks:
+    #   loki: null
+    ports:
+    - 3000:3000
+    volumes:
+    - ./files/grafana/plugins:/var/lib/grafana/plugins:ro
+    - ./grafana_db:/var/lib/grafana/database
+    - ./config/grafana.ini:/etc/grafana/grafana.ini
+
+  greptimedb:
+    container_name: greptimedb
+    image: greptime/greptimedb:latest
+    volumes:
+    - ./greptimedb_data:/tmp/greptimedb
+    - ./config/greptimedb.toml:/etc/greptimedb.toml
+    ports:
+    - 4000:4000
+    - 4001:4001
+    - 4002:4002
+    - 4003:4003
+    - 4004:4004
+    - 4242:4242
+    command: standalone start -c /etc/greptimedb.toml
+

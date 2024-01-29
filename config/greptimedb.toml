@@ -1,0 +1,46 @@
+[http]
+addr = "0.0.0.0:4000"
+timeout = "30s"
+body_limit = "64MB"
+
+[grpc]
+addr = "0.0.0.0:4001"
+runtime_size = 8
+
+[mysql]
+enable = true
+addr = "0.0.0.0:4002"
+runtime_size = 2
+
+[mysql.tls]
+mode = "disable"
+cert_path = ""
+key_path = ""
+
+[postgres]
+enable = true
+addr = "0.0.0.0:4003"
+runtime_size = 2
+
+[postgres.tls]
+mode = "disable"
+cert_path = ""
+key_path = ""
+
+[opentsdb]
+enable = true
+addr = "0.0.0.0:4242"
+runtime_size = 2
+
+[influxdb]
+enable = true
+
+[prom_store]
+enable = true
+
+[wal]
+file_size = "50MB"
+purge_threshold = "250MB"
+purge_interval = "10m"
+read_batch_size = 128
+sync_write = false

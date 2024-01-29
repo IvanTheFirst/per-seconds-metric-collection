@@ -1,0 +1,35 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "community",
+  "signedByOrg": "mofengfeng",
+  "signedByOrgName": "mofengfeng",
+  "plugin": "mofengfeng-greptimedb-datasource",
+  "version": "0.2.5",
+  "time": 1688633210214,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "plugin.json": "1af14610e3b0eda9dbe472e3ec474f017d0dd509e3c28efa168b7b3a03cb41f1",
+    "CHANGELOG.md": "f528c3bd8ea8fbb51acce2e5be6cb8955b9b0775f8c08b1150b5d95257d612f6",
+    "LICENSE": "c5accbbd8546e94c34aed24afe689a617627d18eed5a6c48277e48db57c23851",
+    "img/screenshots/sql-query-editor.png": "0150394e40b98bc28fe3aafd7036b366f5bfb6fab4a59d41406f5a04c52de48f",
+    "img/logo.svg": "1a8b368cd7935e9d32f70885915fcf351d99481ba858e70e6a78bbb8337accff",
+    "README.md": "7fe6f7871d9abb96322ca8c3b44dc7e4c187e2e6394bc9d5aef540febfde633a",
+    "module.js.map": "a63fd59ded622d51c9cdb85d9e6cf3115df98456526a5b1fad9089b93b7ad6aa",
+    "module.js": "b0174776d4a84f60ddc11b7a9677ae248babd6e5d1f2d8de90778c98da3eab7c"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.10.10
+Comment: https://openpgpjs.org
+
+wrcEARMKAAYFAmSmf3oAIQkQfk0ManCIZucWIQTzOyW2kQdOhGNlcPN+TQxq
+cIhm54f9AgYolsr26+dE6qRQLM6E2lJv/CTMi9I3KYvBo38BMcF3QjC9dIvE
+tY3hwy22raIQI9Ps1CkopkJl/tC7mKa3ecOMiQIFGfROHH2dbIiPucZC3Qae
+/2TbPzyD896sQrZogP3aoJT5sRHdaxESXOy0o+fB59ga9tpJ+ZyrQO7MPRx6
+atrEtX0=
+=Lqvs
+-----END PGP SIGNATURE-----
