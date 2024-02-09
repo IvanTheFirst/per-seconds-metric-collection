@@ -18,38 +18,41 @@ services:
     - ./files/grafana/plugins:/var/lib/grafana/plugins
     - ./grafana_db:/var/lib/grafana/database
     - ./config/grafana.ini:/etc/grafana/grafana.ini
-    
-  timescaledb:
-    container_name: timescaledb
-    image: timescale/timescaledb:latest-pg16
-    volumes:
-    - ./timescaledb_data:/var/lib/postgresql/data
-    - ./config/timescaledb_user_db_create.sh:/docker-entrypoint-initdb.d/timescaledb_user_db_create.sh
+
+  clickhouse:
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    container_name: clickhouse/clickhouse-server
     environment:
-      - POSTGRES_PASSWORD=password
-    ports:
-    - 127.0.0.1:5432:5432
-    healthcheck:
-      # test: ["CMD-SHELL", "pg_isready", "-u","postgres","-d", "metrics"]
-      test: pg_isready -U postgres -d metrics
-      interval: 10s
-      timeout: 20s
-      retries: 3
-      start_period: 20s
-      # start_interval: 10s
+      CLICKHOUSE_DB: metrics
+      CLICKHOUSE_USER: monitoring
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_PASSWORD: parol
 
-  fluentbit:
-    container_name: fluentbit
-    image: cr.fluentbit.io/fluent/fluent-bit
-    depends_on:
-      timescaledb:
-        condition: service_healthy
+    image: grafana/grafana:main
+    # networks:
+    #   loki: null
+    ports:
+    - 3000:3000
     volumes:
-      - ./config/fluentbit.conf:/fluent-bit/etc/fluent-bit.conf
-    ports:
-      - 2020:2020
-    command: 
-      /fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf -i tcp -o stdout
-    #  /fluent-bit/bin/fluent-bit -i tcp -P 2020 -o stdout
-
-
+    - ./files/grafana/plugins:/var/lib/grafana/plugins
+    - ./grafana_db:/var/lib/grafana/database
+    - ./config/grafana.ini:/etc/grafana/grafana.ini
+  # timescaledb:
+  #   container_name: timescaledb
+  #   image: timescale/timescaledb:latest-pg16
+  #   volumes:
+  #   - ./timescaledb_data:/var/lib/postgresql/data
+  #   - ./config/timescaledb_user_db_create.sh:/docker-entrypoint-initdb.d/timescaledb_user_db_create.sh
+  #   environment:
+  #     - POSTGRES_PASSWORD=password
+  #   ports:
+  #   - 127.0.0.1:5432:5432
+  #   healthcheck:
+  #     # test: ["CMD-SHELL", "pg_isready", "-u","postgres","-d", "metrics"]
+  #     test: pg_isready -U postgres -d metrics
+  #     interval: 10s
+  #     timeout: 20s
+  #     retries: 3
+  #     start_period: 20s
+  #     # start_interval: 10s
