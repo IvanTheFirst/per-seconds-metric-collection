@@ -59,12 +59,12 @@ url: http://greptimedb:4000/
 database: public
 ```
 
-![greptimedb datasource setup](/pictures/greptimedb_datasource.png)
+![greptimedb datasource setup](/perl/pictures/greptimedb_datasource.png)
 
 ignore this error -
 ```Greptime error code undefined. See https://github.com/GreptimeTeam/greptimedb/blob/develop/src/common/error/src/status_code.rs for more details```
 
-![greptimedb datasource saving settings error](/pictures/greptimedb_datasource_error.png)
+![greptimedb datasource saving settings error](/perl/pictures/greptimedb_datasource_error.png)
 
 ---
 
@@ -73,15 +73,15 @@ When creating a dashboard, it is important to first make all the settings in the
 
 1. select the FROM field from the drop-down list:
 
-   ![greptimedb datasource settings](/pictures/greptimedb_dashboard_02.png)
+   ![greptimedb datasource settings](/perl/pictures/greptimedb_dashboard_02.png)
 
 2. manually (this is important!) enter greptime_value in the time column field and put * in the SELECT field:
 
-   ![greptimedb datasource settings](/pictures/greptimedb_dashboard_03.png)
+   ![greptimedb datasource settings](/perl/pictures/greptimedb_dashboard_03.png)
 
 3. check that the grafana variable ```$__timeFilter``` is converted correctly (time stamps in the request, instead of $__timeFilter):
 
-   ![greptimedb datasource settings](/pictures/greptimedb_dashboard_04.png)
+   ![greptimedb datasource settings](/perl/pictures/greptimedb_dashboard_04.png)
 4. switch to code editing mode and you can already enter a normal query:
 
    ```
@@ -94,7 +94,7 @@ When creating a dashboard, it is important to first make all the settings in the
    GROUP by command,ts
    ORDER BY ts
    ```
-   ![greptimedb datasource settings](/pictures/greptimedb_dashboard_06.png)
+   ![greptimedb datasource settings](/perl/pictures/greptimedb_dashboard_06.png)
 
 ---
 
@@ -163,4 +163,4 @@ ORDER BY time ASC
 
 set query format to Time series, highlighted in red in the screenshot:
 
-![query and chart timescaledb](/pictures/timescaledb_01.png)
+![query and chart timescaledb](/perl/pictures/timescaledb_01.png)

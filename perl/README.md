@@ -59,12 +59,12 @@ url: http://greptimedb:4000/
 database: public
 ```
 
-![настройки greptimedb datasource](/pictures/greptimedb_datasource.png)
+![настройки greptimedb datasource](/perl/pictures/greptimedb_datasource.png)
 
 будет такая ошибка - 
 ```Greptime error code undefined. See https://github.com/GreptimeTeam/greptimedb/blob/develop/src/common/error/src/status_code.rs for more details``` её можно игнорировать
 
-![ошибка при сохранении greptimedb datasource](/pictures/greptimedb_datasource_error.png)
+![ошибка при сохранении greptimedb datasource](/perl/pictures/greptimedb_datasource_error.png)
 
 ---
 
@@ -73,15 +73,15 @@ database: public
 
 1. выбрать поле FROM из выпадающего списка:
 
-    ![настройки greptimedb datasource](/pictures/greptimedb_dashboard_02.png)
+    ![настройки greptimedb datasource](/perl/pictures/greptimedb_dashboard_02.png)
 
 2. вручную (это важно!) ввести greptime_value в поле time column и поставить * в поле SELECT:
 
-    ![настройки greptimedb datasource](/pictures/greptimedb_dashboard_03.png)
+    ![настройки greptimedb datasource](/perl/pictures/greptimedb_dashboard_03.png)
 
 3. теперь можно проверить, что переменная grafana ```$__timeFilter``` корректно преобразуется (в запросе временные метки, вместо $__timeFilter):
 
-    ![настройки greptimedb datasource](/pictures/greptimedb_dashboard_04.png)
+    ![настройки greptimedb datasource](/perl/pictures/greptimedb_dashboard_04.png)
 
 4. переходим в режим редактирования кода и уже можно ввести нормальный запрос:
     ```
@@ -94,7 +94,7 @@ database: public
     GROUP by command,ts
     ORDER BY ts
     ```
-    ![настройки greptimedb datasource](/pictures/greptimedb_dashboard_06.png)
+    ![настройки greptimedb datasource](/perl/pictures/greptimedb_dashboard_06.png)
 
 ---
 
@@ -163,4 +163,4 @@ ORDER BY time ASC
 
 формат запроса должен быть Time series, выделено красным на скриншоте:
 
-![запрос и график timescaledb](/pictures/timescaledb_01.png)
+![запрос и график timescaledb](/perl/pictures/timescaledb_01.png)
