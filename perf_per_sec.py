@@ -8,7 +8,10 @@ import yaml
 from argparse import ArgumentParser
 import re
 import sys
+from zoneinfo import ZoneInfo
+import tzlocal
 import time
+import datetime
 import json
 # import sqlite3
 # import duckdb
@@ -34,7 +37,11 @@ commands:
     versions:
       - version_regexp: .*3.3.\d+.*
         cmd: vmstat -w -a -n -S b 1
+        timezone: Europe\Moscow # не обязательный параметр, если есть, то будет учитывать временную зону конкретной команды, иначе системное время
         parsers:
+            # может содержать метрику timestamp, но не обходимо чтобы формат был:
+            # 2024.12.31 23:59:59 - %Y-%m-%d %H:%M:%S
+            # в наносекундах - (целое число) от 1970.01.01 ( unix timestamp )
           - name: default
             value: {'01:METRIC:procs_r'         :'^\s*(\d+)\s+',
                     '02:METRIC:procs_b'         : '(\d+)\s+',
@@ -53,13 +60,16 @@ commands:
                     '15:METRIC:cpu_id'          : '(\d+)\s+',
                     '16:METRIC:cpu_wa'          : '(\d+)\s+',
                     '17:METRIC:cpu_st'          : '(\d+)\s*' }
+            
 
 output:
     clickhouse:
+        ## можно указать временную зону для хранения значений, по умолчанию будет UTC и все метки времени будут приводится к UTC
+        timezone = 'Etc/UTC'
         ## clickhouse connection scheme secure True/False
         secure: False
-        ## clickhouse host and port (secure port - 9440, insecure - 8123)
-        host: "127.0.0.1:8123"
+        ## clickhouse host and port (secure port - 9440, insecure - 9000)
+        host: "127.0.0.1:9000"
         login: "monitoring"
         password: "parol"
         ## clickhouse cluster to create tables, leave empty or none for local database
@@ -128,7 +138,12 @@ def command_prepare(commands:dict) -> dict:
 
         for version in commands[command_name]['versions']:
             if re.match(version['version_regexp'],str(cmd_ver_output)):
-                output[command_name] = {'cmd_line': version['cmd'],'parser':{}}
+                timezone = tzlocal.get_localzone()
+                if 'timezone' in version.keys():
+                    timezone = ZoneInfo(version['timezone'])
+                output[command_name] = {'cmd_line': version['cmd'],
+                                        'parser':{},
+                                        'timezone': timezone}
 
                 logger.info(f"Command {version['cmd']} tags, columns and regexps:")
 
@@ -160,47 +175,54 @@ def command_prepare(commands:dict) -> dict:
                     output[command_name]['parser'][temp_parser['name']]['regexp'] = temp_regexp
                     output[command_name]['parser'][temp_parser['name']]['tags'] = temp_tags
                     output[command_name]['parser'][temp_parser['name']]['metrics'] = temp_metrics
-                    
+
                 break
 
     return output
 
 def run_commands(cmd_name:str,command_parser:dict,output_queues:dict) -> None:
-    try:
-        command = command_parser['cmd_line']
-        process = Popen(command.split(' '), bufsize=1, universal_newlines=True, stdout=PIPE, stderr=STDOUT)
+    # try:
+    command = command_parser['cmd_line']
+    process = Popen(command.split(' '), bufsize=1, universal_newlines=True, stdout=PIPE, stderr=STDOUT)
 
-        if process.returncode:
-            logger.debug(f"Cmd command {command} was spawned successfully, yet an error occuring during the execution of the command")
+    if process.returncode:
+        logger.debug(f"Cmd command {command} was spawned successfully, yet an error occuring during the execution of the command")
 
-        for line in iter(process.stdout.readline, ''):
-            if line != '': 
-                timestamp = time.time()
-                for parser_name in command_parser['parser'].keys():
-                    # parser_name - имя парсера, связка команда - парсер формирует набор однотипных данных
-                    # поэтому надо их позже собирать в отдельные списки, а сейчас просто отправлять в очередь вместе
-                    parser = command_parser['parser'][parser_name]
-                    temp_fields_values = re.findall(parser['regexp'],line.rstrip())
-                    if temp_fields_values :
-                        fields_values = { parser['fields'][j]: temp_fields_values[0][j] for j in range(len(parser['fields'])) }
-                        tags = {tag: fields_values[tag] for tag in parser['tags']}
-                        metrics = {metric: to_float_or_int_or_str(fields_values[metric]) for metric in parser['metrics']}
+    for line in iter(process.stdout.readline, ''):
+        if line != '': 
+            timestamp = time.time_ns()
+            for parser_name in command_parser['parser'].keys():
+                # parser_name - имя парсера, связка команда - парсер формирует набор однотипных данных
+                # поэтому надо их позже собирать в отдельные списки, а сейчас просто отправлять в очередь вместе
+                parser = command_parser['parser'][parser_name]
+                temp_fields_values = re.findall(parser['regexp'],line.rstrip())
+                if temp_fields_values :
+                    fields_values = { parser['fields'][j]: temp_fields_values[0][j] for j in range(len(parser['fields'])) }
+                    tags = {tag: fields_values[tag] for tag in parser['tags']}
+                    metrics = {metric: to_float_or_int_or_str(fields_values[metric]) for metric in parser['metrics']}
+                    if not 'timestamp' in metrics.keys():
                         metrics['timestamp'] = timestamp
-                        for output in output_queues.keys():
-                            if OUTPUT_READY[output]:
-                                output_queues[output].put((cmd_name,parser_name,tags,metrics))
-
-    except Exception as exceptionError:
-        logger.error(f"With command {command} run or parse something goes wrong. ERROR: {exceptionError}")
+                    else:
+                        try:
+                            temp_timestamp = datetime.datetime.strptime(metrics['timestamp'], '%Y.%m.%d %H:%M:%S').replace(tzinfo=command_parser['timezone'])
+                            metrics['timestamp'] = int(time.mktime(temp_timestamp.utctimetuple)) * 1000000000
+                        except Exception as e:
+                            pass
+                    for output in output_queues.keys():
+                        if OUTPUT_READY[output]:
+                            output_queues[output].put((cmd_name,parser_name,tags,metrics))
+                                
+    # except Exception as exceptionError:
+    #     logger.error(f"With command {command} run or parse something goes wrong. ERROR: {exceptionError}")
 
 def to_float_or_int_or_str(metric_value:str) -> int|float|str:
 
-    metric_value = metric_value.replace(",", ".")
     try:
         return int(metric_value)
     except:
         pass
     try:
+        metric_value = metric_value.replace(",", ".")
         return float(metric_value)
     except:
         pass
@@ -218,18 +240,17 @@ def to_float_or_int_or_str(metric_value:str) -> int|float|str:
 #     #     return method(*method_args, **method_kwargs)
 #     # return func
 
+
 class Output():
-    def stdout(self, output:dict, output_queue:queue.Queue, stop) -> None:
+    def output_stdout( output:dict, output_queue:queue.Queue, stop) -> None:
         while True:
-            if not output_queue.empty():
-                (cmd,parser_name,tags,metrics) = output_queue.get()
-                if output['format'] == 'json':
-                    print(json.dumps(tags|metrics))
+            (cmd,parser_name,tags,metrics) = output_queue.get()
+            if output['format'] == 'json':
+                print(json.dumps(tags|metrics))
             if stop():
                 break
 
-    def clickhouse(self, output:dict, output_queue:queue.Queue, stop) -> None:
-
+    def output_clickhouse(output:dict, output_queue:queue.Queue, stop) -> None:
         click = clickhouse_helper(dbsecure = output['secure'],
                                 dbhost = output['host'],
                                 dbuser = output['login'],
@@ -239,31 +260,36 @@ class Output():
                                 table_engine = output['table_engine'],
                                 reconnect_timeout_sec = output['reconnect_timeout_sec']
                                 )
+        if 'timezone' not in output.keys():
+            output['timezone'] = 'Etc/UTC'
         while True:
-            OUTPUT_READY[output] = click.connection_status
+            OUTPUT_READY['clickhouse'] = click.connection_status
             if not click.connection_status:
                 click.connect_to_db()
                 click.get_db_scheme()
-                OUTPUT_READY[output] = click.connection_status
+                OUTPUT_READY['clickhouse'] = click.connection_status
 
             start_time = time.time()
             messages = {}
             # суть в том, что для каждой связки команда - парсер даннные однотипные, 
             # это удобно для последующей отправки данных в БД
-            while not output_queue.empty():
-                (cmd_name, parser_name, tags,metrics) = output_queue.get()
+            # использование queue empty - очень дорогое по потреблению ЦПУ
+            while (time.time() - start_time) < 1:
+                
+                logger.debug( str(time.time() - start_time) )
+                (cmd_name, parser_name, tags, metrics) = output_queue.get()
                 if cmd_name not in messages.keys(): 
                     messages[cmd_name + "_" + parser_name] = []
-                messages[cmd_name].append(tags|metrics)
+                messages[cmd_name + "_" + parser_name].append(tags|metrics)
 
             table_to_create = list(set(messages.keys()) - set(click.db_scheme.keys()))
             if len(table_to_create) > 0:
                 for table in table_to_create:
-                    for insert in click.schema_inserts(messages[table],table):
+                    for insert in click.schema_inserts(messages[table],table, output['timezone']):
                         click.send(insert)
 
             for cmd_parser in messages.keys():
-                click.send(messages[cmd_parser],table=cmd_parser)
+                click.send(messages[cmd_parser],table_name=cmd_parser)
 
             if stop():
                 break
@@ -273,6 +299,9 @@ class Output():
                 time.sleep(time.time() - start_time)
 
 class clickhouse_helper():
+    """
+        в таком виде сразу + 85МБ ОЗУ
+    """
 
     from clickhouse_driver import Client
     import numpy as np
@@ -315,7 +344,7 @@ class clickhouse_helper():
             except Exception as e:
                 logger.error(f"Can't connect to clickhouse {self.dbhost}. error: {str(e)}")
                 self.connection_status = False
-            time.sleep(self.reconnect_timeout_sec)
+                time.sleep(self.reconnect_timeout_sec)
 
     # def check_connection(self) -> bool:
     #     try:
@@ -342,10 +371,11 @@ class clickhouse_helper():
         self.db_scheme = dict_tables.copy()
         logger.info(f'got database {self.dbname } schema ')
 
-    def schema_inserts(self,elements:list,table_name:str,timestamp_field_name:str=None):
+    def schema_inserts(self,elements:list,table_name:str,timezone:str,timestamp_field_name:str=None):
         df = self.pd.DataFrame(elements)
         if not timestamp_field_name:
             timestamp_field_name = 'timestamp'
+        #df[timestamp_field_name] = df[timestamp_field_name].apply(lambda x: self.datetime.fromtimestamp(x / 1e9))
         types = {}
         for col_name in df:
             if df.dtypes[col_name] == object:
@@ -353,8 +383,8 @@ class clickhouse_helper():
             elif df.dtypes[col_name] == bool:
                 df[col_name] = df[col_name].replace({True: 1, False: 0})
                 types[col_name] = 'UInt8'
-            elif df.dtypes[col_name] == self.np.dtype('datetime64[ns]'):
-                types[col_name] = 'DateTime64 CODEC(DoubleDelta,ZSTD)'
+            elif df.dtypes[col_name] == self.np.dtype('datetime64[ns]') or col_name == 'timestamp':
+                types[col_name] = f"DateTime64(9, '{timezone}') CODEC(DoubleDelta,ZSTD)"
             elif df.dtypes[col_name] == self.np.half:
                 types[col_name] = 'Float64 CODEC(Gorilla,ZSTD)'
             elif df.dtypes[col_name] == self.np.float_:
@@ -454,7 +484,7 @@ class clickhouse_helper():
                 self.click_client.execute(insert)
             else:
                 df = self.pd.DataFrame(insert)
-                self.click_conn.click_client.insert_dataframe(f"INSERT INTO `{self.dbname}`.`{table_name}` VALUES ",df)
+                self.click_client.insert_dataframe(f"INSERT INTO `{self.dbname}`.`{table_name}` VALUES ",df)
         
         except Exception as e:
             # SOCKET_TIMEOUT = 209
@@ -489,20 +519,24 @@ def main():
         func_name = None
         if output_type == 'stdout':
             OUTPUT_READY[output_type] = True
-            func_name = 'stdout'
+            func_name = 'output_stdout'
 
         elif output_type == 'clickhouse':
             OUTPUT_READY[output_type]  = False
-            func_name = 'clickhouse'
+            func_name = 'output_clickhouse'
 
         if func_name:
-            output_queues[output_type] = queue.Queue()
-            output_func = getattr(Output(), func_name)
-            thread = Thread(target=output_func,args=(config['output'][output_type],
-                                                            output_queues[output_type],
-                                                            lambda : stop_threads))
-            thread.start()
-            threads.append(thread)
+            try:
+                output_func = getattr(Output, func_name)
+            except Exception as e:
+                logger.error(f'output function { func_name } not found. Error: { str(e) }')
+            else:
+                output_queues[output_type] = queue.Queue()
+                thread = Thread(target=output_func,args=(config['output'][output_type],
+                                                                output_queues[output_type],
+                                                                lambda : stop_threads))
+                thread.start()
+                threads.append(thread)
 
     # start threads for each command
     for k,v in cmd_parsers.items():

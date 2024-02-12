@@ -1,5 +1,7 @@
 version: '3'
 services:
+  # chown 1472 ./docker-files/grafana/grafana_db
+  # chown 1472 ./docker-files/grafana/plugins
   grafana:
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=1
@@ -9,35 +11,31 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_BASIC_ENABLED: "false"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_INSTALL_PLUGINS: "grafana-clickhouse-datasource"
     image: grafana/grafana:main
-    # networks:
-    #   loki: null
     ports:
-    - 3000:3000
+    - 127.0.0.1:3000:3000
     volumes:
-    - ./files/grafana/plugins:/var/lib/grafana/plugins
-    - ./grafana_db:/var/lib/grafana/database
-    - ./config/grafana.ini:/etc/grafana/grafana.ini
+    - ./docker-files/docker-data/grafana/plugins:/var/lib/grafana/plugins
+    - ./docker-files/docker-data/grafana/grafana_db:/var/lib/grafana/database
+    - ./docker-files/config/grafana.ini:/etc/grafana/grafana.ini
 
   clickhouse:
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=1
-    container_name: clickhouse/clickhouse-server
+    container_name: clickhouse
     environment:
       CLICKHOUSE_DB: metrics
       CLICKHOUSE_USER: monitoring
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
       CLICKHOUSE_PASSWORD: parol
 
-    image: grafana/grafana:main
-    # networks:
-    #   loki: null
+    image: clickhouse/clickhouse-server
     ports:
-    - 3000:3000
+    - 127.0.0.1:9000:9000
     volumes:
-    - ./files/grafana/plugins:/var/lib/grafana/plugins
-    - ./grafana_db:/var/lib/grafana/database
-    - ./config/grafana.ini:/etc/grafana/grafana.ini
+    - ./docker-files/docker-data/clickhouse/clickhouse_data:/var/lib/clickhouse
+
   # timescaledb:
   #   container_name: timescaledb
   #   image: timescale/timescaledb:latest-pg16

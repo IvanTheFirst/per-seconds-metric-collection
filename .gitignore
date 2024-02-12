@@ -1,4 +1,5 @@
 greptimedb_data
 timescaledb_data
+docker-data
 grafana_db
 config.yaml
